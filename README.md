@@ -1,36 +1,26 @@
-# Movie Night (Next.js + Supabase, for Vercel)
+# Filmski večer (Next.js + Supabase, za Vercel)
 
-Roommates pitch a movie anonymously (an image plus a few sentences, no title). Pitches stay sealed on the board until someone rolls the projector. No logins: anyone with the link can pitch. Rolling, marking things watched and removing pitches need the house password.
+Sostanovalci anonimno predlagajo film (slika + nekaj stavkov, brez naslova). Predlogi so zapečateni, dokler ne začnemo predstavitve. Brez prijave: vsak s povezavo lahko predlaga. Predstavitev, glasovanje, ponastavitve in odstranjevanje zahtevajo hišno geslo.
 
-## Setup
+## Nastavitev
 
 ### 1. Supabase
-1. Create a project at supabase.com.
-2. SQL Editor > New query > paste `supabase/schema.sql` > Run.
-3. Project Settings > API: copy the Project URL and the `service_role` key.
+SQL Editor > New query > prilepi `supabase/schema.sql` > Run.
+(Če si schema.sql že zagnal pred glasovanjem, zaženi samo `supabase/votes.sql`.)
 
 ### 2. Vercel
-1. Put this folder in a GitHub repo and import it in Vercel (framework: Next.js, nothing to change).
-2. Add three environment variables (Settings > Environment Variables):
-   - `SUPABASE_URL`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-   - `HOUSE_PASSWORD` (the funny one: `popcorn-gremlin-9000`)
-3. Deploy. Share the URL with the house.
+Environment Variables: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `HOUSE_PASSWORD` (`popcorn-gremlin-9000`). Nato Redeploy.
 
-### Local
-```
-npm install
-cp .env.example .env.local   # fill in the values
-npm run dev
-```
+## Kako deluje
+1. Vsak odda predlog (slika + opis). Na tabli so vidljive samo zapečatene vstopnice.
+2. "Začni predstavitev" (geslo): predlogi se razkrijejo enega za drugim v naključnem vrstnem redu (gumba Nazaj/Naprej, tudi puščici na tipkovnici).
+3. Po zadnjem predlogu se odpre glasovanje. Dodaš glasovalca po imenu; ta izbere tri različne filme za 3, 2 in 1 točko (če so v igri manj kot trije filmi, toliko, kolikor jih je).
+4. Rezultati so sešteti sproti. "Ponastavi" pri imenu pobriše glasove ene osebe, "Ponastavi vse glasove" pobriše vse.
+5. "Ogledali smo si ga" premakne zmagovalca med že predvajane in pobriše glasove za nov krog. Pri izenačenju izbereš sam.
 
-## How it works
-- The browser never talks to Supabase. Everything goes through `app/api/*` routes that use the service role key, which lives only in server environment variables. Row level security is on with no policies, so the public key can read nothing.
-- `GET /api/pitches` returns pitches still in the running as ids and numbers only. The text and image are sent only for already-screened pitches.
-- `POST /api/roll` checks the password, picks a random unscreened pitch and returns it. Only the person who rolled sees the text, so the others stay surprised until it is marked watched.
-- Images are shrunk in the browser to under about 190 KB and stored as a text column, so no Supabase Storage setup is needed.
+Glasovanje poteka na eni napravi (ta, ki je vnesla geslo), npr. na televiziji ali prenosniku, vsak glasovalec pride na vrsto.
 
-## Limits
-- No logins means no "who pitched it" and no per-author delete. Removing uses the house password.
-- Anyone with the link can add pitches. Keep the URL within the house.
-- The board refreshes every 15 seconds and after your own actions.
+## Opombe
+- Brskalnik nikoli ne govori s Supabase neposredno. Vse gre prek `app/api/*`, ki uporablja service role ključ iz okoljskih spremenljivk. Row level security je vklopljen brez pravil.
+- Če odstraniš predlog, se izbrišejo tudi glasovi zanj.
+- Slike se v brskalniku pomanjšajo na pod približno 190 KB in se shranijo kot besedilo.
