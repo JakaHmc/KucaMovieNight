@@ -1,6 +1,7 @@
 -- Zaženi enkrat v Supabase: SQL Editor > New query > prilepi > Run.
 create table if not exists pitches (
   id uuid primary key default gen_random_uuid(),
+  title text check (title is null or char_length(title) between 1 and 80),
   description text not null check (char_length(description) between 20 and 420),
   image text not null check (char_length(image) < 200000),
   watched boolean not null default false,
@@ -11,6 +12,8 @@ create table if not exists pitches (
 -- Ves dostop poteka prek Next.js API poti s service role ključem,
 -- zato predlogi ostanejo zapečateni, dokler jih nekdo ne razkrije.
 alter table pitches enable row level security;
+-- Če je tabela pitches že obstajala brez naslova, zaženi supabase/title.sql
+alter table pitches add column if not exists title text check (title is null or char_length(title) between 1 and 80);
 
 -- Glasovanje
 create table if not exists votes (

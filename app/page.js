@@ -67,6 +67,7 @@ export default function Page() {
   const [ready, setReady] = useState(false);
   const [status, setStatus] = useState("");
 
+  const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [image, setImage] = useState(null);
   const [formErr, setFormErr] = useState("");
@@ -91,6 +92,7 @@ export default function Page() {
   const [newVoter, setNewVoter] = useState("");
   const [voteMsg, setVoteMsg] = useState("");
   const [armedReset, setArmedReset] = useState(null);
+  const [reveal, setReveal] = useState(null);
   const [voteBusy, setVoteBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -132,12 +134,14 @@ export default function Page() {
   async function submit(e) {
     e.preventDefault();
     const text = desc.trim();
+    const name = title.trim();
+    if (!name) { setFormErr("Vpiši naslov filma."); return; }
     if (!image) { setFormErr("Najprej dodaj sliko."); return; }
     if (text.length < MIN) { setFormErr(`Napiši vsaj ${MIN} znakov.`); return; }
     setFormErr(""); setSaving(true);
     try {
-      await api("/api/pitches", { description: text, image });
-      setDesc(""); setImage(null);
+      await api("/api/pitches", { title: name, description: text, image });
+      setTitle(""); setDesc(""); setImage(null);
       setStatus("Tvoj predlog je na tabli.");
       await load();
     } catch (err) {
@@ -296,9 +300,17 @@ export default function Page() {
   const top = tally.length ? tally[0].total : 0;
   const leaders = top > 0 ? tally.filter((t) => t.total === top) : [];
 
+  async function revealWinner(p) {
+    try {
+      const d = await api(`/api/pitches/${p.id}`, { password, action: "reveal" });
+      setReveal({ ...p, title: d.title || null });
+    } catch (err) { setVoteMsg(err.message); }
+  }
+
   async function markWatched(id) {
     try {
       await api(`/api/pitches/${id}`, { password, action: "watch" });
+      setReveal(null);
       setStatus("Premaknjeno med že predvajane. Glasovi so počiščeni za nov krog.");
       setVotes([]); setPending([]); setSelected(null);
       setStage(null);
@@ -331,7 +343,7 @@ export default function Page() {
         <div className="bulbs" aria-hidden="true">{Array.from({ length: 24 }, (_, i) => <i key={i} style={{ animationDelay: `${(i % 6) * 0.25}s` }} />)}</div>
         <p className="kicker">Hiša predstavlja</p>
         <h1>Filmski večer</h1>
-        <p className="tag">Predlagaj film brez naslova. Potem skupaj izberemo.</p>
+        <p className="tag">Predlagaj film. Naslov ostane skrit, dokler film ne zmaga.</p>
         <div className="bulbs" aria-hidden="true">{Array.from({ length: 24 }, (_, i) => <i key={i} style={{ animationDelay: `${(i % 6) * 0.25 + 0.12}s` }} />)}</div>
       </header>
 
@@ -348,7 +360,15 @@ export default function Page() {
               </button>
               <input ref={fileRef} type="file" accept="image/*" hidden onChange={pickFile} />
 
-              <label className="lab" htmlFor="desc">Opis <span className="sub">(izpusti naslov filma)</span></label>
+              <label className="lab" htmlFor="title">Naslov filma <span className="sub">(skrit do zmage)</span></label>
+              <input
+                id="title" className="gate-input" value={title} maxLength={80}
+                onChange={(e) => setTitle(e.target.value)} autoComplete="off"
+                placeholder="Npr. naslov filma, ki ga predlagaš"
+              />
+              <p className="note">Naslova ne vidi nihče: ni na vstopnici, ni v predstavitvi in ni pri glasovanju. Pokaže se samo, če film zmaga.</p>
+
+              <label className="lab" htmlFor="desc">Opis <span className="sub">(brez naslova filma)</span></label>
               <textarea
                 id="desc" value={desc} maxLength={MAX}
                 onChange={(e) => setDesc(e.target.value)}
@@ -357,7 +377,7 @@ export default function Page() {
               <div className="chars">{desc.length} / {MAX}</div>
               <p className="err" role="alert">{formErr}</p>
               <button type="submit" className="btn">{saving ? "Shranjujem..." : "Dodaj na tablo"}</button>
-              <p className="note">Predlogi so anonimni. Ostanejo zapečateni, dokler ne začnemo predstavitve.</p>
+              <p className="note">Predlogi so anonimni. Ostanejo zapečateni, dokler ne začnemo predstavitve, naslov pa se razkrije šele ob zmagi.</p>
             </fieldset>
           </form>
         </section>
@@ -418,7 +438,10 @@ export default function Page() {
                   <div key={p.id} className="slot">
                     <article className="ticket done">
                       <div className="frame"><img src={p.image} alt={`Slika predloga številka ${p.n}`} /></div>
-                      <div className="body"><p className="desc">{p.description}</p></div>
+                      <div className="body">
+                        {p.title && <p className="shelf-title">{p.title}</p>}
+                        <p className="desc">{p.description}</p>
+                      </div>
                       <footer className="stub">
                         <span>Nº {pad(p.n)}</span>
                         {password
@@ -453,7 +476,7 @@ export default function Page() {
 
       {stage === "present" && cur && (
         <div className="stage" role="dialog" aria-modal="true" aria-labelledby="stageH">
-          <div className="stage-panel">
+          <div className="stage-panel big">
             <div className="stage-img"><img src={cur.image} alt={`Slika predloga številka ${cur.n}`} /></div>
             <div className="stage-text">
               <p className="kicker">Predlog {idx + 1} od {revealed.length}</p>
@@ -579,23 +602,39 @@ export default function Page() {
                 <div className="winner">
                   <p className="kicker">Zmagovalec</p>
                   <p>Predlog Nº {pad(leaders[0].p.n)} z {leaders[0].total} {tocka(leaders[0].total)}.</p>
-                  <button type="button" className="btn" onClick={() => markWatched(leaders[0].p.id)}>Ogledali smo si ga</button>
+                  <button type="button" className="btn" onClick={() => revealWinner(leaders[0].p)}>Razkrij zmagovalca</button>
                 </div>
               )}
               {leaders.length > 1 && (
                 <div className="winner">
                   <p className="kicker">Neodločeno</p>
-                  <p>Enako točk imajo predlogi {leaders.map((l) => "Nº " + pad(l.p.n)).join(", ")}. Glasujte znova ali izberite enega.</p>
+                  <p>Enako točk imajo predlogi {leaders.map((l) => "Nº " + pad(l.p.n)).join(", ")}. Glasujte znova ali razkrijte enega od njih.</p>
                   <div className="actions">
                     {leaders.map((l) => (
-                      <button key={l.p.id} type="button" className="btn ghost" onClick={() => markWatched(l.p.id)}>
-                        Ogledali smo si Nº {pad(l.p.n)}
+                      <button key={l.p.id} type="button" className="btn ghost" onClick={() => revealWinner(l.p)}>
+                        Razkrij Nº {pad(l.p.n)}
                       </button>
                     ))}
                   </div>
                 </div>
               )}
             </section>
+          </div>
+        </div>
+      )}
+      {reveal && (
+        <div className="stage" role="dialog" aria-modal="true" aria-labelledby="revealH">
+          <div className="stage-panel big">
+            <div className="stage-img"><img src={reveal.image} alt={`Slika predloga številka ${reveal.n}`} /></div>
+            <div className="stage-text">
+              <p className="kicker">Zmagovalec · Predlog Nº {pad(reveal.n)}</p>
+              <h2 id="revealH" className="reveal-title">{reveal.title || "Naslov ni bil vpisan"}</h2>
+              <p className="stage-desc">{reveal.description}</p>
+              <div className="actions">
+                <button type="button" className="btn" onClick={() => markWatched(reveal.id)}>Ogledali smo si ga</button>
+                <button type="button" className="btn ghost" onClick={() => setReveal(null)}>Nazaj na glasovanje</button>
+              </div>
+            </div>
           </div>
         </div>
       )}

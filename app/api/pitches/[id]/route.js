@@ -3,7 +3,7 @@ import { db, checkPassword } from "@/lib/server";
 
 export const dynamic = "force-dynamic";
 
-// POST { password, action: "watch" | "unwatch" | "remove" }
+// POST { password, action: "watch" | "unwatch" | "remove" | "reveal" }
 // "watch" po ogledu pobriše tudi vse glasove, da se začne nov krog.
 export async function POST(req, { params }) {
   let body;
@@ -19,6 +19,10 @@ export async function POST(req, { params }) {
       res = await sb.from("pitches").update({ watched: true }).eq("id", id);
       if (res.error) throw res.error;
       res = await sb.from("votes").delete().gt("points", 0);
+    } else if (body.action === "reveal") {
+      const { data, error } = await sb.from("pitches").select("title").eq("id", id).single();
+      if (error) throw error;
+      return NextResponse.json({ title: data.title || null });
     } else if (body.action === "unwatch") {
       res = await sb.from("pitches").update({ watched: false }).eq("id", id);
     } else if (body.action === "remove") {

@@ -7,7 +7,7 @@ const mono = Space_Mono({ weight: ["400", "700"], subsets: ["latin", "latin-ext"
 
 export const metadata = {
   title: "Filmski večer",
-  description: "Predlagaj film brez naslova. Potem skupaj izberemo.",
+  description: "Predlagaj film, naslov pa ostane skrit, dokler film ne zmaga.",
 };
 
 export const viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };

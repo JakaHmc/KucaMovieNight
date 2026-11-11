@@ -158,3 +158,16 @@ textarea:focus, .gate-input:focus, .btn:focus-visible, .drop:focus-visible, .lin
 .winner { margin-top: 16px; padding: 16px; border: 2px dashed var(--brass); border-radius: 10px; }
 .winner p { margin: 4px 0 12px; }
 @media (max-width: 560px) { .vote-wrap { padding: 16px; } }
+
+/* Velika predstavitev na računalniku */
+.stage { padding: clamp(12px, 2vw, 32px); }
+.stage-panel.big { width: min(1760px, 100%); min-height: min(90vh, 1000px); align-items: center; gap: clamp(24px, 3.5vw, 64px); padding: clamp(20px, 3.5vw, 64px); grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+.stage-panel.big .stage-img img { width: 100%; max-height: 78vh; object-fit: contain; }
+.stage-panel.big .stage-text h2 { font-size: clamp(34px, 4.6vw, 80px); line-height: 1.08; }
+.stage-panel.big .stage-desc { font-size: clamp(20px, 2.1vw, 36px); line-height: 1.55; }
+.stage-panel.big .kicker { font-size: clamp(12px, 1.1vw, 18px); }
+.stage-panel.big .btn { font-size: clamp(16px, 1.3vw, 22px); padding: 0.75em 1.6em; }
+.stage-panel.big .progress i { width: 34px; height: 8px; }
+.reveal-title { overflow-wrap: anywhere; }
+.shelf-title { margin: 0 0 6px; font-family: var(--display); font-size: 18px; line-height: 1.2; }
+@media (max-width: 700px) { .stage-panel.big { grid-template-columns: minmax(0, 1fr); min-height: 0; } .stage-panel.big .stage-img img { max-height: 50vh; } }
